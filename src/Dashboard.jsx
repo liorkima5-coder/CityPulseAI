@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { supabase } from './supabaseClient';
-import { LayoutDashboard, Ticket, Users, LogOut, Activity, CheckCircle, Clock, ShieldAlert, AlertTriangle, Map, Menu } from 'lucide-react';
+import { LayoutDashboard, Ticket, Users, LogOut, Activity, CheckCircle, Clock, ShieldAlert, AlertTriangle, MessageSquare } from 'lucide-react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import Footer from './Footer';
 import Tickets from './Tickets';
 import Residents from './Residents';
+import Leads from './Leads'; // <--- Import החדש
 import MapView from './MapView';
 import AdminPanel from './AdminPanel';
 
@@ -58,7 +59,6 @@ export default function Dashboard() {
   const NavItem = ({ to, icon: Icon, label, mobile = false }) => {
     const isActive = location.pathname === to;
     
-    // ניווט מובייל - הוספתי אפקט לחיצה (active:scale)
     if (mobile) {
       return (
         <Link to={to} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all active:scale-90 ${isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
@@ -78,23 +78,9 @@ export default function Dashboard() {
     )
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#f1f5f9] p-8 flex flex-col gap-8">
-      <div className="flex justify-between items-end">
-        <div className="skeleton w-64 h-12"></div>
-        <div className="skeleton w-32 h-10 rounded-full"></div>
-      </div>
-      <div className="grid grid-cols-4 gap-6">
-        <div className="skeleton h-32"></div>
-        <div className="skeleton h-32"></div>
-        <div className="skeleton h-32"></div>
-        <div className="skeleton h-32"></div>
-      </div>
-    </div>
-  );
+  if (loading) return <div className="min-h-screen bg-[#f1f5f9] p-8 flex items-center justify-center">טוען...</div>;
 
   return (
-    // שינוי ל-h-[100dvh] מונע קפיצות בדפדפנים ניידים
     <div className="flex h-[100dvh] bg-[#f1f5f9] font-sans text-slate-900 overflow-hidden">
       
       {/* --- Desktop Sidebar --- */}
@@ -117,7 +103,8 @@ export default function Dashboard() {
             <p className="text-xs font-bold text-slate-400 px-4 mb-3 mt-4 uppercase tracking-widest">תפריט</p>
             <NavItem to="/dashboard" icon={LayoutDashboard} label="מרכז בקרה" />
             <NavItem to="/dashboard/tickets" icon={Ticket} label="ניהול פניות" />
-            <NavItem to="/dashboard/residents" icon={Users} label="תושבים" />
+            <NavItem to="/dashboard/leads" icon={MessageSquare} label="הודעות ולידים" /> {/* הוספתי כאן */}
+            <NavItem to="/dashboard/residents" icon={Users} label="ספר תושבים" />
             {isAdmin && (
               <>
                <div className="my-6 border-t border-slate-100 mx-4"></div>
@@ -167,8 +154,6 @@ export default function Dashboard() {
                   </div>
                 </header>
 
-                {/* --- Stats Carousel for Mobile (Grid for Desktop) --- */}
-                {/* כאן השינוי הגדול: במובייל זה הופך לגלילה אופקית (Carousel) */}
                 <div className="flex overflow-x-auto pb-4 -mx-4 px-4 gap-4 snap-x md:grid md:grid-cols-4 md:gap-6 md:overflow-visible md:p-0 md:m-0 scrollbar-hide">
                   <StatCard title="סה״כ פניות" value={stats.total} icon={<Activity />} iconColor="text-blue-600" iconBg="bg-blue-50" />
                   <StatCard title="ממתינות" value={stats.open} icon={<AlertTriangle />} iconColor="text-red-600" iconBg="bg-red-50" />
@@ -177,7 +162,6 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto lg:h-[500px]">
-                  {/* Chart */}
                   <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm flex flex-col lg:col-span-1 h-[300px] lg:h-auto">
                     <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                       <Activity size={18} className="text-blue-600"/> סטטוס שבועי
@@ -196,7 +180,6 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Recent List */}
                   <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[400px] lg:h-auto">
                     <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                       <Clock size={18} className="text-purple-600"/> עדכונים אחרונים
@@ -217,7 +200,6 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Map */}
                   <div className="bg-white rounded-[2rem] p-2 border border-slate-200 shadow-sm relative overflow-hidden lg:col-span-1 h-[300px] lg:h-auto">
                      <div className="w-full h-full rounded-[1.5rem] overflow-hidden">
                         <MapView />
@@ -228,6 +210,7 @@ export default function Dashboard() {
             } />
             <Route path="/tickets" element={<Tickets />} />
             <Route path="/residents" element={<Residents />} />
+            <Route path="/leads" element={<Leads />} /> {/* הוספתי כאן את הנתיב */}
             <Route path="/admin" element={isAdmin ? <AdminPanel /> : <div className="text-red-500 font-bold p-10 text-center">אין גישה</div>} />
           </Routes>
           <div className="mt-6 md:mt-auto pt-6"><Footer /></div>
@@ -238,8 +221,8 @@ export default function Dashboard() {
       <div className="md:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur-xl border-t border-slate-200 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 px-6 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
          <NavItem to="/dashboard" icon={LayoutDashboard} label="בית" mobile />
          <NavItem to="/dashboard/tickets" icon={Ticket} label="פניות" mobile />
+         <NavItem to="/dashboard/leads" icon={MessageSquare} label="הודעות" mobile /> {/* הוספתי כאן */}
          <NavItem to="/dashboard/residents" icon={Users} label="תושבים" mobile />
-         {isAdmin && <NavItem to="/dashboard/admin" icon={ShieldAlert} label="מנהל" mobile />}
       </div>
 
     </div>
@@ -248,7 +231,6 @@ export default function Dashboard() {
 
 function StatCard({ title, value, icon, iconColor, iconBg }) {
   return (
-    // min-w-[160px] במובייל מבטיח שהכרטיסים לא יימעכו ויהיה אפשר לגלול אותם
     <div className="bg-white rounded-[2rem] p-5 border border-slate-200 shadow-sm min-w-[160px] snap-start active:scale-[0.98] transition-transform md:min-w-0 md:active:scale-100">
       <div className="flex justify-between items-start">
         <div>
