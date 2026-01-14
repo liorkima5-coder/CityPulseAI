@@ -55,14 +55,14 @@ export default function Dashboard() {
     { name: 'סגור', count: stats.closed, color: '#10b981' },
   ];
 
-  // רכיב כפתור ניווט (משמש גם לדסקטופ וגם למובייל)
   const NavItem = ({ to, icon: Icon, label, mobile = false }) => {
     const isActive = location.pathname === to;
     
+    // ניווט מובייל - הוספתי אפקט לחיצה (active:scale)
     if (mobile) {
       return (
-        <Link to={to} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all ${isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
-          <div className={`p-1.5 rounded-full ${isActive ? 'bg-blue-50' : ''}`}>
+        <Link to={to} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all active:scale-90 ${isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
+          <div className={`p-1.5 rounded-full transition-colors ${isActive ? 'bg-blue-50' : ''}`}>
              <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
           </div>
           <span className="text-[10px] font-bold">{label}</span>
@@ -78,7 +78,6 @@ export default function Dashboard() {
     )
   };
 
-  // --- Skeleton Loader ---
   if (loading) return (
     <div className="min-h-screen bg-[#f1f5f9] p-8 flex flex-col gap-8">
       <div className="flex justify-between items-end">
@@ -95,9 +94,10 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="flex min-h-screen bg-[#f1f5f9] font-sans text-slate-900 overflow-hidden">
+    // שינוי ל-h-[100dvh] מונע קפיצות בדפדפנים ניידים
+    <div className="flex h-[100dvh] bg-[#f1f5f9] font-sans text-slate-900 overflow-hidden">
       
-      {/* --- Desktop Sidebar (Hidden on Mobile) --- */}
+      {/* --- Desktop Sidebar --- */}
       <aside className="w-72 bg-white border-l border-slate-200 flex flex-col fixed h-full z-30 shadow-sm hidden md:flex">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-8">
@@ -136,39 +136,40 @@ export default function Dashboard() {
       </aside>
 
       {/* --- Main Content --- */}
-      {/* הוספתי padding-bottom (pb-24) כדי שהתוכן לא יוסתר ע"י הסרגל התחתון בנייד */}
-      <main className="flex-1 md:mr-72 h-screen overflow-y-auto custom-scrollbar bg-[#f1f5f9] pb-24 md:pb-0">
+      <main className="flex-1 md:mr-72 h-full overflow-y-auto custom-scrollbar bg-[#f1f5f9] pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-0">
         <div className="p-4 md:p-8 max-w-[1600px] mx-auto min-h-full flex flex-col">
           
-          {/* Mobile Header (Lighter version) */}
-          <div className="md:hidden flex justify-between items-center mb-6">
+          {/* Mobile Header */}
+          <div className="md:hidden flex justify-between items-center mb-6 sticky top-0 z-20 bg-[#f1f5f9]/90 backdrop-blur-sm py-2">
              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
                   <Activity size={18} />
                 </div>
                 <span className="text-lg font-black text-slate-800">City<span className="text-blue-600">Pulse</span></span>
              </div>
-             <button onClick={handleLogout} className="p-2 bg-white rounded-full shadow-sm text-slate-500">
+             <button onClick={handleLogout} className="p-2 bg-white rounded-full shadow-sm text-slate-500 hover:text-red-500 active:scale-90 transition-transform">
                <LogOut size={18} />
              </button>
           </div>
 
           <Routes>
             <Route path="/" element={
-              <div className="animate-enter space-y-8">
-                <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+              <div className="animate-enter space-y-6 md:space-y-8">
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-2">
                   <div>
                     <h1 className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight mb-1">
                       בוקר טוב, מנהל.
                     </h1>
-                    <p className="text-slate-500 text-sm md:text-base">סקירת מצב העיר בזמן אמת במערכת CityPulse.</p>
+                    <p className="text-slate-500 text-sm md:text-base">סקירת מצב העיר בזמן אמת.</p>
                   </div>
                   <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-slate-600 text-sm font-medium shadow-sm">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> מערכת אונליין
                   </div>
                 </header>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                {/* --- Stats Carousel for Mobile (Grid for Desktop) --- */}
+                {/* כאן השינוי הגדול: במובייל זה הופך לגלילה אופקית (Carousel) */}
+                <div className="flex overflow-x-auto pb-4 -mx-4 px-4 gap-4 snap-x md:grid md:grid-cols-4 md:gap-6 md:overflow-visible md:p-0 md:m-0 scrollbar-hide">
                   <StatCard title="סה״כ פניות" value={stats.total} icon={<Activity />} iconColor="text-blue-600" iconBg="bg-blue-50" />
                   <StatCard title="ממתינות" value={stats.open} icon={<AlertTriangle />} iconColor="text-red-600" iconBg="bg-red-50" />
                   <StatCard title="בטיפול" value={stats.in_progress} icon={<Clock />} iconColor="text-orange-600" iconBg="bg-orange-50" />
@@ -203,7 +204,7 @@ export default function Dashboard() {
                     <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                       {recentTickets.length === 0 && <p className="text-slate-400 text-center py-10">אין פעילות אחרונה</p>}
                       {recentTickets.map(t => (
-                        <div key={t.id} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-sm transition-all">
+                        <div key={t.id} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-sm transition-all active:scale-[0.98]">
                           <div className={`w-8 h-8 shrink-0 rounded-xl flex items-center justify-center text-xs font-bold text-white shadow-sm ${t.status === 'חדש' ? 'bg-red-500' : t.status === 'בטיפול' ? 'bg-orange-500' : 'bg-emerald-500'}`}>
                             {t.status[0]}
                           </div>
@@ -229,12 +230,12 @@ export default function Dashboard() {
             <Route path="/residents" element={<Residents />} />
             <Route path="/admin" element={isAdmin ? <AdminPanel /> : <div className="text-red-500 font-bold p-10 text-center">אין גישה</div>} />
           </Routes>
-          <div className="mt-10 md:mt-auto pt-6"><Footer /></div>
+          <div className="mt-6 md:mt-auto pt-6"><Footer /></div>
         </div>
       </main>
 
-      {/* --- Mobile Bottom Navigation (Visible only on Mobile) --- */}
-      <div className="md:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur-xl border-t border-slate-200 pb-safe pt-2 px-6 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      {/* --- Mobile Bottom Navigation --- */}
+      <div className="md:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur-xl border-t border-slate-200 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 px-6 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
          <NavItem to="/dashboard" icon={LayoutDashboard} label="בית" mobile />
          <NavItem to="/dashboard/tickets" icon={Ticket} label="פניות" mobile />
          <NavItem to="/dashboard/residents" icon={Users} label="תושבים" mobile />
@@ -247,7 +248,8 @@ export default function Dashboard() {
 
 function StatCard({ title, value, icon, iconColor, iconBg }) {
   return (
-    <div className="bg-white rounded-[2rem] p-5 border border-slate-200 shadow-sm">
+    // min-w-[160px] במובייל מבטיח שהכרטיסים לא יימעכו ויהיה אפשר לגלול אותם
+    <div className="bg-white rounded-[2rem] p-5 border border-slate-200 shadow-sm min-w-[160px] snap-start active:scale-[0.98] transition-transform md:min-w-0 md:active:scale-100">
       <div className="flex justify-between items-start">
         <div>
           <p className="text-slate-500 text-xs font-bold mb-1 tracking-wide uppercase">{title}</p>
