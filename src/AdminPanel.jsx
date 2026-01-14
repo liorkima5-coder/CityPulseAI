@@ -1,111 +1,107 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { Users, Clock, ShieldAlert, AlertOctagon, UserCog, Zap, Search, PlusCircle } from 'lucide-react';
+import { Plus, Trash2, Shield, Settings, Tag } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AdminPanel() {
-  const [users, setUsers] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [newCatName, setNewCatName] = useState('');
-  const [newCatSla, setNewCatSla] = useState(24);
+  const [newCat, setNewCat] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const { data: usersData } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-      const { data: catsData } = await supabase.from('categories').select('*').order('id');
-      setUsers(usersData || []);
-      setCategories(catsData || []);
-    } catch (error) { toast.error('שגיאה בטעינת נתונים'); } 
-    finally { setLoading(false); }
+  const fetchCategories = async () => {
+    const { data } = await supabase.from('categories').select('*');
+    setCategories(data || []);
   };
 
-  const updateUserRole = async (id, newRole) => {
-    const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', id);
-    if (!error) {
-      toast.success('תפקיד עודכן');
-      setUsers(users.map(u => u.id === id ? { ...u, role: newRole } : u));
-    } else { toast.error('שגיאה בעדכון'); }
-  };
-
-  const updateSla = async (id, hours) => {
-    const { error } = await supabase.from('categories').update({ sla_hours: hours }).eq('id', id);
-    if (!error) toast.success('SLA עודכן');
-  };
-
-  const handleAddCategory = async (e) => {
+  const addCategory = async (e) => {
     e.preventDefault();
-    if (!newCatName) return;
-    const { data, error } = await supabase.from('categories').insert([{ name: newCatName, sla_hours: newCatSla }]).select();
+    if (!newCat) return;
+    setLoading(true);
+    const { error } = await supabase.from('categories').insert([{ name: newCat }]);
     if (error) toast.error('שגיאה');
     else {
       toast.success('קטגוריה נוספה');
-      setCategories([...categories, data[0]]);
-      setNewCatName('');
+      setNewCat('');
+      fetchCategories();
     }
+    setLoading(false);
   };
 
-  const filteredUsers = users.filter(u => (u.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()));
-
-  if (loading) return <div className="p-10 text-center text-blue-600 font-bold animate-pulse">טוען...</div>;
+  const deleteCategory = async (id) => {
+    if (!window.confirm('בטוח?')) return;
+    await supabase.from('categories').delete().eq('id', id);
+    toast.success('נמחק');
+    fetchCategories();
+  };
 
   return (
-    <div className="animate-enter pb-10">
-      <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
-        <div><h1 className="text-4xl font-black text-slate-800 tracking-tight">ניהול מתקדם</h1><p className="text-slate-500 mt-2 font-medium">שליטה מלאה במשתמשים והגדרות.</p></div>
-        <div className="bg-red-50 border border-red-100 px-6 py-2 rounded-full flex items-center gap-2 text-red-600 font-bold text-sm shadow-sm"><AlertOctagon size={16} /> Restricted Area</div>
+    <div className="space-y-8 pb-24 max-w-4xl mx-auto">
+      
+      <div className="text-center md:text-right mb-8">
+         <h2 className="text-3xl font-black text-slate-800 mb-2">הגדרות מערכת</h2>
+         <p className="text-slate-500">ניהול קטגוריות, משתמשים והרשאות</p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
-             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><UserCog className="text-blue-500"/> צוות והרשאות</h2>
-             <input type="text" placeholder="חיפוש..." className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl w-64 focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
+      <div className="grid md:grid-cols-2 gap-6">
+        
+        {/* Categories Card */}
+        <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+          
+          <div className="flex items-center gap-3 mb-6">
+             <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+               <Tag size={24} />
+             </div>
+             <h3 className="text-xl font-bold text-slate-800">ניהול קטגוריות</h3>
           </div>
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
-            <div className="divide-y divide-slate-100">
-              {filteredUsers.map(user => (
-                <div key={user.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center text-lg font-bold text-blue-600">{user.full_name ? user.full_name.charAt(0) : '?'}</div>
-                    <div><h3 className="font-bold text-slate-800 text-lg">{user.full_name}</h3><p className="text-slate-400 text-sm">{user.email}</p></div>
-                  </div>
-                  <select value={user.role} onChange={(e) => updateUserRole(user.id, e.target.value)} className="bg-white border border-slate-200 text-slate-700 rounded-xl py-2 px-4 text-sm font-medium focus:border-blue-500 outline-none cursor-pointer hover:border-blue-300 transition-colors shadow-sm">
-                    <option value="pending">ממתין</option><option value="employee">עובד</option><option value="admin">מנהל</option>
-                  </select>
-                </div>
-              ))}
-            </div>
+
+          <form onSubmit={addCategory} className="flex gap-3 mb-6">
+            <input 
+              className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white transition-all font-medium"
+              placeholder="שם קטגוריה חדשה..." 
+              value={newCat}
+              onChange={e => setNewCat(e.target.value)}
+            />
+            <button disabled={loading} className="bg-slate-900 text-white px-5 rounded-xl hover:bg-black transition-all flex items-center justify-center shadow-lg shadow-slate-900/20 active:scale-95">
+              <Plus size={24} />
+            </button>
+          </form>
+
+          <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+            {categories.map(c => (
+              <div key={c.id} className="flex justify-between items-center p-4 bg-slate-50 rounded-xl group hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-100 transition-all">
+                <span className="font-bold text-slate-700">{c.name}</span>
+                <button onClick={() => deleteCategory(c.id)} className="text-slate-400 hover:text-red-500 p-2 hover:bg-red-50 rounded-lg transition-colors">
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><Zap className="text-amber-500"/> הגדרות SLA</h2>
-            <div className="space-y-3 mb-6">
-              {categories.map(cat => (
-                <div key={cat.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <span className="font-bold text-slate-700 text-sm">{cat.name}</span>
-                  <input type="number" defaultValue={cat.sla_hours} onBlur={(e) => updateSla(cat.id, e.target.value)} className="w-16 bg-white border border-slate-200 rounded-lg py-1 text-center text-slate-800 font-bold text-sm focus:border-blue-500 outline-none"/>
-                </div>
-              ))}
-            </div>
-            <div className="pt-6 border-t border-slate-100">
-              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">הוספת חדש</h4>
-              <form onSubmit={handleAddCategory} className="flex flex-col gap-3">
-                <input type="text" placeholder="שם הקטגוריה" className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} required />
-                <div className="flex gap-3">
-                  <input type="number" placeholder="שעות" className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none w-24 text-center" value={newCatSla} onChange={(e) => setNewCatSla(e.target.value)} required />
-                  <button className="bg-blue-600 text-white font-bold py-2 rounded-xl flex-1 hover:bg-blue-700 transition-colors shadow-md">הוסף</button>
-                </div>
-              </form>
-            </div>
+        {/* Admins Card (Placeholder) */}
+        <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden opacity-80">
+           <div className="flex items-center gap-3 mb-6">
+             <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+               <Shield size={24} />
+             </div>
+             <h3 className="text-xl font-bold text-slate-800">מנהלי מערכת</h3>
+          </div>
+          <p className="text-slate-500 mb-6 leading-relaxed">
+            כאן תוכל להוסיף משתמשי ניהול חדשים ולשלוט בהרשאות גישה לדשבורד.
+            <br/><span className="text-xs font-bold bg-slate-100 px-2 py-1 rounded mt-2 inline-block">בקרוב</span>
+          </p>
+          <div className="space-y-3 blur-[2px] pointer-events-none select-none">
+             <div className="h-12 bg-slate-50 rounded-xl w-full"></div>
+             <div className="h-12 bg-slate-50 rounded-xl w-full"></div>
+             <div className="h-12 bg-slate-50 rounded-xl w-full"></div>
           </div>
         </div>
+
       </div>
     </div>
   );
